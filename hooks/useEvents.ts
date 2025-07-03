@@ -1,125 +1,93 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Event, PaymentStatus } from '../types';
 
-const getInitialEvents = (): Event[] => {
-  try {
-    const item = window.localStorage.getItem('events');
-    if (item) {
-      return JSON.parse(item);
-    }
-  } catch (error) {
-    console.error('Error reading events from localStorage', error);
-  }
-  
-  // Return mock data if localStorage is empty
-  const tomorrowStart = new Date();
-  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-  tomorrowStart.setHours(14, 0, 0, 0); // 2 PM
-  const tomorrowEnd = new Date(tomorrowStart);
-  tomorrowEnd.setHours(tomorrowStart.getHours() + 4); // 4 hour event
-
-  const nextWeekStart = new Date();
-  nextWeekStart.setDate(nextWeekStart.getDate() + 7);
-  nextWeekStart.setHours(10, 0, 0, 0); // 10 AM
-  const nextWeekEnd = new Date(nextWeekStart);
-  nextWeekEnd.setHours(nextWeekStart.getHours() + 8); // 8 hour event
-
-  const lastMonthStart = new Date();
-  lastMonthStart.setMonth(lastMonthStart.getMonth() - 1);
-  lastMonthStart.setHours(9, 0, 0, 0); // 9 AM
-  const lastMonthEnd = new Date(lastMonthStart);
-  lastMonthEnd.setHours(lastMonthStart.getHours() + 3); // 3 hour event
-  const lastMonthVideoEnd = new Date(lastMonthStart);
-  lastMonthVideoEnd.setHours(lastMonthStart.getHours() + 2);
-
-  return [
-    {
-      id: '1',
-      clientName: 'Alice & Bob',
-      eventType: "Wedding",
-      eventStartDate: tomorrowStart.toISOString(),
-      eventEndDate: tomorrowEnd.toISOString(),
-      location: 'The Grand Ballroom',
-      phone: '123-456-7890',
-      payment: 3500,
-      paymentStatus: PaymentStatus.Pending,
-      notes: 'Golden hour shots are a must. Bring 85mm f/1.4.',
-      needsVideography: true,
-      videographyStartDate: tomorrowStart.toISOString(),
-      videographyEndDate: tomorrowEnd.toISOString(),
-    },
-    {
-      id: '2',
-      clientName: 'Charlie Brown',
-      eventType: "Birthday",
-      eventStartDate: nextWeekStart.toISOString(),
-      eventEndDate: nextWeekEnd.toISOString(),
-      location: '123 Main St, Anytown',
-      phone: '234-567-8901',
-      payment: 500,
-      paymentStatus: PaymentStatus.Paid,
-      notes: 'Candid shots of kids playing.',
-      needsVideography: false,
-    },
-    {
-      id: '3',
-      clientName: 'Diana Prince',
-      eventType: "Corporate",
-      eventStartDate: lastMonthStart.toISOString(),
-      eventEndDate: lastMonthEnd.toISOString(),
-      location: 'Wayne Enterprises HQ',
-      phone: '345-678-9012',
-      payment: 2000,
-      paymentStatus: PaymentStatus.Paid,
-      notes: 'Headshots for new employees.',
-      needsVideography: true,
-      videographyStartDate: lastMonthStart.toISOString(),
-      videographyEndDate: lastMonthVideoEnd.toISOString(),
-    },
-  ];
-};
+const initialEvents: Event[] = [
+  {
+    id: '1',
+    clientName: 'Alice & Bob',
+    eventType: 'Wedding',
+    eventStartDate: new Date(new Date().setDate(new Date().getDate() + 10)).toISOString(),
+    eventEndDate: new Date(new Date().setDate(new Date().getDate() + 10)).toISOString(),
+    location: 'Grand Hotel Ballroom',
+    phone: '123-456-7890',
+    payment: 3500,
+    paymentStatus: PaymentStatus.Paid,
+    notes: 'Bride wants a lot of candid shots. Bring the 85mm lens.',
+    needsVideography: true,
+    videographyStartDate: new Date(new Date().setDate(new Date().getDate() + 10)).toISOString(),
+    videographyEndDate: new Date(new Date().setDate(new Date().getDate() + 10)).toISOString(),
+  },
+  {
+    id: '2',
+    clientName: 'Charlie\'s 5th Birthday',
+    eventType: 'Birthday',
+    eventStartDate: new Date(new Date().setDate(new Date().getDate() + 25)).toISOString(),
+    eventEndDate: new Date(new Date().setDate(new Date().getDate() + 25)).toISOString(),
+    location: 'City Park Pavilion',
+    phone: '098-765-4321',
+    payment: 800,
+    paymentStatus: PaymentStatus.Pending,
+    notes: 'Outdoor event, check weather forecast. The theme is superheroes.',
+    needsVideography: false,
+  },
+];
 
 export const useEvents = () => {
-  const [events, setEvents] = useState<Event[]>(getInitialEvents);
-  const [loading, setLoading] = useState(true);
+  const [events, setEvents] = useState<Event[]>(() => {
+    try {
+      const savedEvents = localStorage.getItem('events');
+      // If there are saved events, use them. Otherwise, check if it's the first time and use initialEvents.
+      if (savedEvents) {
+        return JSON.parse(savedEvents);
+      }
+      // Use a flag to ensure initialEvents are only loaded once
+      if (!localStorage.getItem('events_initialized')) {
+        localStorage.setItem('events_initialized', 'true');
+        return initialEvents;
+      }
+      return []; // Default to empty array if initialized but no events
+    } catch (error) {
+      console.error("Error reading events from localStorage", error);
+      return [];
+    }
+  });
+
+  const [loading, setLoading] = useState(false); // No real loading, but keep for API consistency
 
   useEffect(() => {
     try {
       localStorage.setItem('events', JSON.stringify(events));
     } catch (error) {
-      console.error('Error saving events to localStorage', error);
+      console.error("Error saving events to localStorage", error);
     }
   }, [events]);
 
-  useEffect(() => {
-    // Simulating initial load
-    setLoading(false);
-  }, []);
-
-  const addEvent = useCallback((event: Event) => {
-    setEvents(prevEvents => [...prevEvents, event]);
+  const addEvent = useCallback((event: Omit<Event, 'id'>) => {
+    const newEvent = { ...event, id: new Date().toISOString() };
+    setEvents(prev => [...prev, newEvent]);
   }, []);
 
   const updateEvent = useCallback((updatedEvent: Event) => {
-    setEvents(prevEvents =>
-      prevEvents.map(event => (event.id === updatedEvent.id ? updatedEvent : event))
-    );
+    setEvents(prev => prev.map(e => (e.id === updatedEvent.id ? updatedEvent : e)));
   }, []);
 
   const deleteEvent = useCallback((eventId: string) => {
-    setEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
+    setEvents(prev => prev.filter(e => e.id !== eventId));
   }, []);
-
+  
   const updateEventsByEventType = useCallback((oldType: string, newType: string) => {
     setEvents(prevEvents =>
-      prevEvents.map(event => (event.eventType === oldType ? { ...event, eventType: newType } : event))
+      prevEvents.map(event =>
+        event.eventType === oldType ? { ...event, eventType: newType } : event
+      )
     );
   }, []);
 
   const deleteEventsByEventType = useCallback((deletedType: string) => {
-    // Fallback to 'Other' when an event type is deleted.
     setEvents(prevEvents =>
-      prevEvents.map(event => (event.eventType === deletedType ? { ...event, eventType: 'Other' } : event))
+      prevEvents.map(event =>
+        event.eventType === deletedType ? { ...event, eventType: 'Other' } : event
+      )
     );
   }, []);
 
