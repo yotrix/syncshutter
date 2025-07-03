@@ -1,5 +1,6 @@
 {
   "name": "ShutterSync: Photo Business Hub",
   "description": "A personal web app for photographers to manage business events, track payments, and organize schedules with beautiful analytics.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "prompt": ""
 }

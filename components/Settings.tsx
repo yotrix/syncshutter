@@ -5,7 +5,7 @@ import { PencilIcon, TrashIcon, PlusIcon } from './Icons';
 
 const Settings: React.FC = () => {
   const { eventTypes, addEventType, updateEventType, deleteEventType } = useEventTypes();
-  const eventsHook = useEvents();
+  const { updateEventsByEventType, deleteEventsByEventType } = useEvents();
 
   const [newType, setNewType] = useState('');
   const [editingType, setEditingType] = useState<string | null>(null);
@@ -32,7 +32,7 @@ const Settings: React.FC = () => {
   const handleSaveEdit = (oldType: string) => {
     if (editingValue.trim() && editingValue.trim() !== oldType) {
       updateEventType(oldType, editingValue.trim());
-      eventsHook.updateEventsByEventType(oldType, editingValue.trim());
+      updateEventsByEventType(oldType, editingValue.trim());
     }
     handleCancelEdit();
   };
@@ -40,7 +40,7 @@ const Settings: React.FC = () => {
   const handleDeleteType = (type: string) => {
     if (window.confirm(`Are you sure you want to delete the "${type}" event type? All events with this type will be changed to "Other".`)) {
       deleteEventType(type);
-      eventsHook.deleteEventsByEventType(type);
+      deleteEventsByEventType(type);
     }
   };
 
