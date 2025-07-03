@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Event, PaymentStatus } from '../types';
+import { useAuth } from './useAuth';
 
 const initialEvents: Event[] = [
   {
@@ -33,34 +34,51 @@ const initialEvents: Event[] = [
 ];
 
 export const useEvents = () => {
-  const [events, setEvents] = useState<Event[]>(() => {
-    try {
-      const savedEvents = localStorage.getItem('events');
-      // If there are saved events, use them. Otherwise, check if it's the first time and use initialEvents.
-      if (savedEvents) {
-        return JSON.parse(savedEvents);
-      }
-      // Use a flag to ensure initialEvents are only loaded once
-      if (!localStorage.getItem('events_initialized')) {
-        localStorage.setItem('events_initialized', 'true');
-        return initialEvents;
-      }
-      return []; // Default to empty array if initialized but no events
-    } catch (error) {
-      console.error("Error reading events from localStorage", error);
-      return [];
-    }
-  });
+  const { user } = useAuth();
+  const getEventsKey = useCallback(() => user ? `events_${user.email}` : null, [user]);
+  const getInitializedKey = useCallback(() => user ? `events_initialized_${user.email}` : null, [user]);
 
-  const [loading, setLoading] = useState(false); // No real loading, but keep for API consistency
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('events', JSON.stringify(events));
-    } catch (error) {
-      console.error("Error saving events to localStorage", error);
+    setLoading(true);
+    const eventsKey = getEventsKey();
+    const initializedKey = getInitializedKey();
+    if (!eventsKey || !initializedKey) {
+        setEvents([]);
+        setLoading(false);
+        return;
     }
-  }, [events]);
+
+    try {
+      const savedEvents = localStorage.getItem(eventsKey);
+      if (savedEvents) {
+        setEvents(JSON.parse(savedEvents));
+      } else if (!localStorage.getItem(initializedKey)) {
+        localStorage.setItem(initializedKey, 'true');
+        setEvents(initialEvents);
+      } else {
+        setEvents([]);
+      }
+    } catch (error) {
+      console.error("Error reading events from localStorage", error);
+      setEvents([]);
+    } finally {
+        setLoading(false);
+    }
+  }, [user, getEventsKey, getInitializedKey]);
+
+  useEffect(() => {
+    const eventsKey = getEventsKey();
+    if (eventsKey && !loading) {
+        try {
+            localStorage.setItem(eventsKey, JSON.stringify(events));
+        } catch (error) {
+            console.error("Error saving events to localStorage", error);
+        }
+    }
+  }, [events, user, loading, getEventsKey]);
 
   const addEvent = useCallback((event: Omit<Event, 'id'>) => {
     const newEvent = { ...event, id: new Date().toISOString() };

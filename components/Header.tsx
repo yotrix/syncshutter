@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { SunIcon, MoonIcon, UsersIcon } from './Icons';
+import { SunIcon, MoonIcon, UsersIcon, LogoutIcon } from './Icons';
+import { useAuth } from '../hooks/useAuth';
 
 interface HeaderProps {
   theme: string;
@@ -12,6 +13,7 @@ const Header: React.FC<HeaderProps> = ({ theme, toggleTheme }) => {
   const activeNavLinkClasses = 'bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-white';
 
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) => `${navLinkClasses} ${isActive ? activeNavLinkClasses : ''}`;
+  const { logOut } = useAuth();
 
   return (
     <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm sticky top-0 z-40">
@@ -50,6 +52,13 @@ const Header: React.FC<HeaderProps> = ({ theme, toggleTheme }) => {
               ) : (
                 <MoonIcon className="h-6 w-6" />
               )}
+            </button>
+            <button
+              onClick={logOut}
+              className="ml-3 p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
+              aria-label="Logout"
+            >
+              <LogoutIcon className="h-6 w-6" />
             </button>
           </div>
         </div>

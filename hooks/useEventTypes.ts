@@ -1,27 +1,42 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from './useAuth';
 
 const defaultEventTypes = [
   "Wedding", "Birthday", "Baby Shower", "Housewarming", "Half Saree", "Corporate", "Other",
 ];
 
 export const useEventTypes = () => {
-  const [eventTypes, setEventTypes] = useState<string[]>(() => {
+  const { user } = useAuth();
+  const getTypesKey = useCallback(() => user ? `eventTypes_${user.email}` : null, [user]);
+
+  const [eventTypes, setEventTypes] = useState<string[]>([]);
+  
+  useEffect(() => {
+    const typesKey = getTypesKey();
+    if (!typesKey) {
+        setEventTypes([]);
+        return;
+    }
+
     try {
-      const savedTypes = localStorage.getItem('eventTypes');
-      return savedTypes ? JSON.parse(savedTypes) : defaultEventTypes;
+      const savedTypes = localStorage.getItem(typesKey);
+      setEventTypes(savedTypes ? JSON.parse(savedTypes) : defaultEventTypes);
     } catch (error) {
       console.error("Error reading event types from localStorage", error);
-      return defaultEventTypes;
+      setEventTypes(defaultEventTypes);
     }
-  });
+  }, [user, getTypesKey]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('eventTypes', JSON.stringify(eventTypes));
-    } catch (error) {
-      console.error("Error saving event types to localStorage", error);
+    const typesKey = getTypesKey();
+    if (typesKey) {
+      try {
+        localStorage.setItem(typesKey, JSON.stringify(eventTypes));
+      } catch (error) {
+        console.error("Error saving event types to localStorage", error);
+      }
     }
-  }, [eventTypes]);
+  }, [eventTypes, user, getTypesKey]);
 
   const addEventType = useCallback((newType: string) => {
     if (newType && !eventTypes.find(t => t.toLowerCase() === newType.toLowerCase())) {
